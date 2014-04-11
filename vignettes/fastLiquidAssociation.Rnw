@@ -1,0 +1,261 @@
+% \VignetteIndexEntry{fastLiquidAssociation Vignette}
+% \VignetteKeywords{fastLiquid Association, conditional normal model, GEE}
+% \VignettePackage{fastLiquidAssociation}
+\documentclass{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{graphics}
+\usepackage{natbib}
+\usepackage{lmodern}
+\usepackage{amsmath}
+\usepackage{tikz}
+\usepackage{verbatim}
+\usepackage{pdflscape}
+% \usepackage{adjustbox}
+\usepackage{listings}             % Include the listings-package
+\usepackage[font={small,it}]{caption}
+\usetikzlibrary{shapes,arrows,positioning, shapes.symbols,shapes.callouts,patterns}
+\newcommand{\R}{\textsf{R}}
+\newcommand{\Rpackage}[1]{\textit{#1}}
+\newcommand{\Rfunction}[1]{\texttt{#1}}
+\newcommand{\Robject}[1]{\texttt{#1}}
+\title{The fastLiquidAssociation Package}
+\author{Tina Gunderson}
+\begin{document}
+\maketitle
+\tikzstyle{decision} = [diamond, draw, fill=blue!20, 
+    text width=4.5em, text badly centered, node distance=3cm, inner sep=0pt]
+\tikzstyle{block} = [rectangle, draw, fill=blue!20, 
+    text width=10em, text centered, rounded corners, minimum height=4em]
+\tikzstyle{line} = [draw, -latex']
+\tikzstyle{cloud} = [draw, ellipse,fill=red!20, node distance=3cm,
+    minimum height=4em]
+%\tableofcontents
+\section{Introduction}
+The fastLiquidAssociation package is intended to provide more efficient tools for genome-wide application of liquid association. The term liquid association (LA) was coined by K-C. Li in 2002 to describe a theory of co-expression dynamics which ``conceptualize[s] the internal evolution of co-expression pattern for a pair of genes''~\cite{Li2002}. He used the term ``liquid'' here (as opposed to ``solid'') to convey the idea of a quantity which examined the extent to which the co-expression or correlation of two genes $ X_{1}$ and $X_{2}$ might be mediated by the expression of a third gene $X_{3}$, i.e. the degree to which the correlation of the two genes $X_{1}$ and $X_{2}$ might vary (e.g. go from contra- to co-expressed or vice-versa) based on the expression level of the third gene (with the third gene's expression functioning as a representation of the cellular state). \\
+\indent Building on Li's work, Ho et al. proposed a modification to the liquid association statistic in order to better capture more complex interdependencies between the variables, noting that, ``[w]hen the conditional means and variances [of $X_{1}$ and $X_{2}$] also depend on $X_{3}$, then the three-product-moment measure, as derived by Li for standardized variables, no longer precisely estimates the expected change of co-expression of $X_{1}$ and $X_{2}$ with respect to $X_{3}$, but captures a larger set of interdependencies among the three variables''~\cite{Ho2011}.\\
+\indent This software package provides an expansion of the functions available in the LiquidAssociation package. While the LiquidAssociation package refers to modified liquid association (MLA) as generalized liquid association (GLA), the 2011 publication refers to it as modified liquid association. For the purposes of this vignette, we will use the two terms interchangeably. The main function (\textbf{fastMLA}) reduces the processing power and memory needed to calculate MLA values for a genome ($\dbinom{N}{3}*3$, with $N$ being the number of genes in the genome, e.g. 1.079x$10^{11}$ for 6000 genes) by using a pre-screening method to reduce the candidate pool to triplets likely to have a high MLA value. It does this using matrix algebra to create an approximation to the direct MLA estimate for all possible pairs of $X_1$,$X_2$|$X_3$. Intuitively, we can picture MLA as the change in correlation between $X_{1}$ and $X_{2}$ when $X_{3}$ is at a high level of expression versus their correlation when $X_{3}$ is at a low level of expression. This difference, $\rho_{diff}$ ($\rho_{diff} = \rho_{high} - \rho_{low}$), gives an approximation of the relative magnitude of the MLA value for most triplet combinations ($\rho_{diff}$ values range from -2 to 2 compared to MLA values which range from -$\sqrt{\pi/2}$ to $\sqrt{\pi/2}$). Figure 1 shows a comparison using the first 50 and the first 250 genes of the Spellman et al. data set (available in the yeastCC package)~\cite{Spellman1998} for all possible triplets of $|\widehat{MLA}|$ vs. $|\rho_{diff}|$ with lowess curves.\\
+\begin{figure}
+\centering
+\includegraphics[height=2.5in,width=5in]{50250compNL}
+\caption{Comparison for all triplets possible using the first 50 and 250 genes of $|\widehat{MLA}|$ vs. $|\rho_{diff}|$ with lowess curves}
+\end{figure}
+\indent The package also incorporates functions to test for significance of the triplets returning a high MLA value and provides a faster, more robust version of the MLA bootstrapping estimation procedure for use with multicore systems.   
+\section{Simple Usage}
+\begin{figure}
+\centering
+\begin{tikzpicture}[node distance = 2cm, auto]
+% \tikzstyle{every node}=[font=\scriptsize]
+    % Place nodes
+    \node [cloud, align=center] (raw) {Raw data};
+	\node [block, below of=raw, , node distance=2cm, align=center] (genes) {\textbf{Preprocessing}};
+    \node [block, below of=genes, node distance=3cm,align=center] (fgla) {\textbf{fastMLA}};
+    \node [block, below of=fgla, node distance=3cm,align=center] (cnm) {\textbf{mass.CNM}\\significance testing};
+    \node [decision, below of=cnm, node distance=4cm] (decide) {\small Does the full CNM model fit the triplet data well?\\(part of \textbf{mass.CNM})};
+    \node [block, below of=decide, node distance=4cm,align=center] (yesp) {\small combine results from \textbf{fastboots.GLA} and \textbf{mass.CNM}\\
+		\small{calculate adjusted p-values}};
+    \node [decision, left of=decide, node distance=3cm, xshift=-3cm] (update) {\small Does the simple CNM model fit the triplet data well?\\(part of \textbf{mass.CNM})};
+    \node [block, below of=update, node distance=4cm] (update2) {\textbf{fastboots.GLA}\\perform robust estimation and bootstrapping};
+	\node [block, below of=yesp, node distance =3cm,align=center] (gsa) {\textbf{gene set analysis}};
+	\node [block, right of=yesp, node distance =3cm, xshift=2cm,align=center] (set) {specify set of\\ ``interesting triplets''};
+    % Draw edges
+	\path [line] (raw) -- (genes);
+    \path [line] (genes) -- (fgla);
+    \path [line] (fgla) -- node [left] {$|\rho_{diff}| >$ rvalue and in top N=\textit{topn} by $|\widehat{MLA}|$ per gene} (cnm);
+    \path [line] (cnm) -- (decide);
+    \path [line] (decide) -- node {no} (update);
+    \path [line] (update) -- node {no} (update2);
+    \path [line] (decide) -- node {yes}(yesp);
+    \path [line] (update) -- node {yes}(yesp);
+    \path [line] (update2) |- (yesp);
+    \path [line,dashed] (genes) -- node [left] {Any reduction of data set e.g. non-specific filtering} (fgla);
+    \path [line] (yesp) -- node {} (set);
+	\draw[->,rounded corners=5pt] (set) |- (gsa)  ;
+	\draw[line,rounded corners=5pt] (fgla)-| node[above]{Use fastMLA results to specify set}(set)  ;
+	\end{tikzpicture}
+\caption{Process map for data processing, testing, and gene set analysis using all components of the fastLiquidAssociation package}
+\end{figure}
+
+Here we present an example of package usage on a smaller data set. We start by loading the \R{} package and the example data. In this package, we use the yeast cell cycle gene expression data by Spellman ~\cite{Spellman1998}. The data can be obtained through package yeastCC. The annotation package for the yeast experiment \textit{org.Sc.sgd.db} can be obtained through Bioconductor. 
+\\
+\subsection{fastMLA}
+%library(matrixStats)
+%library(combinat)
+%library(WGCNA)
+%allowWGCNAThreads()
+<<SuppressLoadData, echo=FALSE>>=
+library(WGCNA)
+library(LiquidAssociation)
+library(parallel)
+@
+<<loadData>>=
+library(fastLiquidAssociation)
+library(yeastCC)
+library(org.Sc.sgd.db)
+data(spYCCES)
+lae <- spYCCES[,-(1:4)]
+### get rid of samples with high % NA elements
+lae <- lae[apply(is.na(exprs(lae)),1,sum) < ncol(lae)*0.3,]
+probname <- rownames(exprs(lae))
+data <- t(exprs(lae))
+data <- data[,1:50]
+dim(data)
+@ 
+\indent After removing genes with high missing percentage, for speed in this example, we reduce the data set to the first 50 genes. A normal score transformation of the data as described in both Li and Ho et al.'s work ~\cite{Li2002}~\cite{Ho2011} is performed within the \textbf{fastMLA} function. The top values are returned sorted by $|\widehat{MLA}|$.
+<<calculate top MLA>>=
+ 
+example <- fastMLA(data=data,topn=50,nvec=1:5,rvalue=0.5,cut=4)
+example[1:5,]
+@
+\indent The arguments to the \textbf{fastMLA} function are a matrix of numerical data with genes as columns(\textit{data}), the number of results to return (\textit{topn}), the column numbers of the genes to test (\textit{nvec}), the $|\rho_{diff}|$ cutoff to use (\textit{rvalue}), and the \textit{cut} argument to pass to the GLA function from the LiquidAssociation package. The \textit{cut} argument will depend on the number of observations in the data. Based on data from Ho et al.~\cite{Ho2011}, the number of observations per bin should be in the 15-30 range for maximum specificity. The \textit{cut} argument is equal to the number of bins plus one. Hence in this example, as we have 73 observations, we chose to se the \textit{cut} value at 4.  The maximum \textit{rvalue} is theoretically 2 (as $\rho_{diff} = |\rho_{high} - \rho_{low}|$ and -1 $\le \rho_{X_{1},X_{2}} \le$ 1). The default value is set at 0.5 or 25$\%$ of the realizable correlation difference, however $|\rho_{diff}|$ a.k.a. \textit{rvalue} was set at 1.1 in our example above for speed purposes. Caution should be used when determining the \textit{rvalue}. Too high a value risks missing those triplets whose MLA values are not fully reflected by the more simplistic correlation, while too low a value approaches testing all possible triplets and forfeits any increase in testing efficiency. \footnote{The fastMLA function incorporates the more efficient correlation calculation of the \textbf{cor} function in the WGCNA package~\cite{Langfelder2008}.}\\
+\subsection{Functions of the Conditional Normal Model}
+\indent Two options for calculating significance are included in this package, \textbf{mass.CNM} which relies on estimation of parameters from a conditional normal model and \textbf{fastboots.GLA} which uses a more robust direct estimate method. Both functions return unadjusted p-values. The CNM model is written as: 
+\begin{eqnarray*}
+\label{larho}
+X_3 &\sim& N(\mu_3, \sigma_3^2) \\
+X_1, X_2|X_3  &\sim& N(\left( \begin{array}{c}
+ \mu_1 \\
+ \mu_2 \end{array} \right), \Sigma). 
+\end{eqnarray*}
+where $\Sigma=\left( \begin{array}{cc}
+ \sigma_1^2 					   & \rho \sigma_1 \sigma_2 \\
+ \rho \sigma_1 \sigma_2         & \sigma_2^2 \end{array} \right)$. The mean vector ($\mu_1, \mu_2$) and variance matrix $\Sigma$ depend on the level of $X_3$ as written below: 
+\begin{eqnarray*}
+\mu_1 &=& \beta_1 X_3,  \\
+\mu_2 &=& \beta_2 X_3, \\
+\log{\sigma_{1}^2} &=& \alpha_{3} + \beta_{3} X_3, \\
+\log{\sigma_{2}^2} &=& \alpha_4 + \beta_4 X_3, \\
+\log{[\frac{1+\rho}{1-\rho}]} &=& \alpha_5 + \beta_5 X_3. 
+\end{eqnarray*}
+
+<<Calculate CNM>>=
+ 
+#from our example with fastMLA
+CNMcalc <- mass.CNM(data=data,GLA.mat=example,nback=5)
+CNMcalc
+@
+In our original subset of the data, there are no triplets not returning sensible values, so to demonstrate what is returned when sensible values are not returned for either model, we change the dataset used to the full 5721 genes in the \textit{yeastCC} data set and use a matrix which specifically contains triplets not returning sensible values.
+<<Calculate CNM boots>>=
+ 
+fulldata <- t(exprs(lae))
+load(system.file('data','testmat.RData',package='fastLiquidAssociation'))
+notsense <- testmat
+CNMother <- mass.CNM(data=fulldata,GLA.mat=notsense,nback=5)
+CNMother
+@
+In the above example, we apply the \textbf{mass.CNM} function to the results of \textbf{fastMLA} to test for significance using both of the conditional normal model-based approaches laid out in  Ho et al. ~\cite{Ho2011}. The \textbf{mass.CNM} function accepts three arguments: \textit{data}, \textit{GLA.mat}, and \textit{nback}. \textit{data} is the same matrix used as \textit{data} in the \textbf{fastMLA} function, the \textit{GLA.mat} is the returned matrix from a call to the \textbf{fastMLA} function, and \textit{nback} is the number of results to return, sorted by p-value, then by size of the Wald statistic. The main parameter of interest in the CNM for significance testing using liquid association is $b_5$. \\
+\indent The \textbf{mass.CNM} incorporates a two step process, first testing the triplets against the full CNM model and then for any triplets which do not return sensible values (sensible being defined as any triplet for which the p-value or SE estimate=0, SE estimate $>$10, or any $\beta_{5}$ statistics returned ``NaN", ``NA'', or ``Inf''), it tests them against the simple model. The full CNM model uses all parameter value (i.e. estimates the parameters of the model above using all five equations), while the simple model only uses the last three. \\
+\indent The \textbf{mass.CNM} output is a list with two components, one a data frame with \textit{nback} rows which list the information from fastMLA (the triplet, the triplet's GLA and $\rho_{diff}$ values), the $\beta_5$ values estimated in the model (the estimate for $\beta_5$, its SE, the Wald statistic, and p-value), and the model (full or simple) which was used to calculate the values and the second a list of any triplets who did not return sensible values for either model. For any triplets that do not return a sensible value using one of the two models, the more robust direct estimate method is available as the \textbf{fastboots.GLA} function. \footnote{The above example may produce a warning message ``In sqrt(diag(object\$valpha)) : NaNs produced''. This is normal behavior when one or both of the CNM models cannot fit at least one of the triplets.}
+
+\subsection{Parallelization of the Direct Estimate}
+As mentioned before, for triplets that when tested with the full or simple models did not return sensible values, a direct estimator is available. The \textbf{fastboots.GLA} function makes use of the increased processing power that has become more widely available, both on standard desktops and servers. It is an updated and parallelized version of the getsGLA function available in the LiquidAssociation package. As the standard error in the direct estimate relies on bootstrapping and the significance calculations can require a large number of iterations, we sought a more efficient method to increase efficiency. \\
+\indent Parallelization has as its basis the idea that large problems (e.g. a high number of calculations) can be split into smaller problems that are being run at the same time, rather than sequentially. Parallelization of processes makes sense when each process itself takes significantly longer to complete than to allocate. \\In the below example, we use the \textbf{detectCores} function from the parallel package to detect the number of CPU cores. On systems where more processors are available, e.g. servers for supercomputing which normally have multiple nodes of several processors each, it is possible to set a larger number of cores than the \textbf{detectCores} function may detect.\\
+\indent \textbf{fastboots.GLA} is intended to be used with the results of a call to \textbf{mass.CNM}, specifically the output labelled bootstrap triplets. The \textbf{fastboots.GLA} function is intended for use on multicore systems in order to make use of possible parallelization. While it can be used on a single core system, there would be no speed benefit over the \textbf{getsGLA} function available in the LiquidAssociation package, though the \textbf{fastboots.GLA} function does resolve an error in the \textbf{getsGLA} function that can be caused by data redundancy. In the below example, we are using a quad-core system.
+%closeAllConnections()
+<<Time comparison>>=
+ 
+#determine number of processors for multicore systems
+cores <- detectCores()
+cores
+clust <- makeCluster(cores)
+boottrips <- CNMother[[2]]
+dim(boottrips)
+@
+<<Quantile normalization, echo=FALSE>>=
+stand2 <- function(object){
+	ans <- (object-mean(object,na.rm=TRUE))/sd(object,na.rm=TRUE)
+	return(ans)
+}
+
+quant.norm <- function(vector){
+	myvect <- vector
+	n <- sum(as.numeric(!is.na(myvect)))
+	rmyvect <- rank(myvect,na.last="keep")/(n+1)
+	nmyvect <- sapply(rmyvect, qnorm)
+	return(nmyvect)
+}
+
+dat.q <- apply(fulldata,2,quant.norm)
+qnormdata <- apply(dat.q,2,stand2)
+@
+Below we show a comparison of processing speed between the original getsGLA function
+and the fastboots.GLA function. qnormdata is a quantile normalized version of the full data set
+
+<<Speed Test>>=
+ 
+bootlist <- qnormdata[,boottrips[1,1:3]]
+dim(bootlist)
+#We take the results for the first triplet and put it in matrix format 
+example.boots <- t(as.matrix(boottrips[1,]))
+dim(example.boots)
+set.seed(1)
+system.time(GLAnew <- fastboots.GLA(tripmat=example.boots,data=fulldata, clust=clust, boots=30, perm=500, cut=4))
+set.seed(1)
+system.time(GLAold <- getsGLA(bootlist,perm=500,boots=30, cut=4))
+GLAnew
+GLAold
+
+#the matrix conversion is not needed for the 2 line result
+set.seed(1)
+system.time(GLAtwo <- fastboots.GLA(tripmat=boottrips,data=fulldata, clust=clust, boots=30, perm=500, cut=4))
+GLAtwo
+stopCluster(clust)
+@
+\textit{tripmat} here is the list of triplets where a direct estimate is needed. The \textit{data} is the numeric matrix of data used in both the \textbf{fastMLA} and \textbf{mass.CNM} functions. \textit{clust} is a cluster of CPU cores to use in parallelization, created by a call to the \textbf{makeCluster} function from package parallel. The \textit{boots} argument specifies the number of bootstrap iterations for estimating the bootstrap standard error. The \textit{perm} argument specifies the number of iterations to calculate the permuted p-value. Given that the results of the permutations depend on random number generation, for reproduciblity here we use the set.seed option. The \textit{cut} option is used to determine the number of ``buckets'' to used in the estimation procedure.\\
+\indent Because the normalization of the data matrix is incorporated into the \textbf{fastboots.GLA} function, the full time decrease is not apparent until the number of iterations significantly exceeds the time to normalize the data matrix or the number of triplets to test increases. This is partially displayed in the example, where even the calculation of two triplets has a lower processing time than the single triplet run serially.\\
+\section{Further Applications}
+In this section, we cover further applications available with the results of the fastLiquidAssociation package. Using the GOstats package in conjunction with the results from either the \textbf{fastMLA}, the \textbf{mass.CNM}, or \textbf{fastboots.GLA} we can specify our set of interesting genes and perform GO analysis. We show an example here using the genes in the $X_3$ position of the results from \textbf{fastMLA} to define our list of interesting genes and a p-value cutoff of 0.05 for the BP ontology. Only categories containing a minimum of five genes are displayed.
+<<Extend Example>>=
+library(GOstats)
+library("org.Sc.sgd.db")
+##X3 genes
+topX3 <- unique(example[,3])
+hyp.cutoff <- 0.05
+####
+params <- new("GOHyperGParams", geneIds=topX3,universeGeneIds=colnames(data),
+annotation="org.Sc.sgd.db",ontology="BP",pvalueCutoff=hyp.cutoff,conditional=TRUE,
+testDirection="over")
+GOout <- hyperGTest(params)
+summary(GOout,categorySize=5)
+@
+Because we used open reading frame (ORF) IDs in order to use the GOstats package with yeast data, we can the following to unpack the associated gene names.   
+<<Obtain gene list>>=
+###extracts GO list elements of summary(hyperGtestobj)<cutoff
+###converts ORFids to Gene names and returns under GO list element
+##for ontology BP
+GOids <- summary(GOout,categorySize=5)$GOBPID
+check <- GOout@goDag@nodeData@data
+subset <- check[GOids]
+terms <- summary(GOout,categorySize=5)$Term
+test <- sapply(subset,function(m) m[1])
+orflist <- lapply(test,function(x) intersect(x,topX3))
+##creates mapping of ORFids to gene names
+x <- org.Sc.sgdGENENAME
+mappedgenes <- mappedkeys(x)
+xx <- as.list(x[mappedgenes])
+mapid <- names(xx)
+##creates list of GO ids
+genename1 <- lapply(orflist,function(x) xx[match(x,mapid)])
+###
+###if reduced num of terms desired use next line else skip to next ##
+for(i in 1:length(genename1)){
+if (length(genename1[[i]])>10) genename1[[i]]<-genename1[[i]][1:10]
+}
+##for full list use below
+genelist <- lapply(genename1,function(x) paste(x,collapse=", "))
+ugenes <- unlist(genelist)
+names <- sapply(names(ugenes), function(x) unlist(strsplit(x, split='.', fixed=TRUE))[1])
+umat <- matrix(ugenes)
+umat <- cbind(terms,umat)
+rownames(umat) <- names
+colnames(umat) <- c("GO description","Associated genes")
+umat
+@
+
+\section{References}
+\bibliographystyle{plain} 
+\bibliography{PlanBJabref}
+\section{Session Information}
+<<Session info, echo=FALSE>>=
+sessionInfo()
+@
+\end{document}
