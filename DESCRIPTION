@@ -1,7 +1,7 @@
 Package: fastLiquidAssociation
 Type: Package
 Title: functions for genome-wide application of Liquid Association
-Version: 1.0.0
+Version: 1.1.0
 Date: 2013-12-08
 Author: Tina Gunderson
 Maintainer: Tina Gunderson <gunde207@umn.edu>
