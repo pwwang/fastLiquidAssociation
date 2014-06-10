@@ -1,7 +1,7 @@
 Package: fastLiquidAssociation
 Type: Package
 Title: functions for genome-wide application of Liquid Association
-Version: 1.1.0
+Version: 1.1.1
 Date: 2013-12-08
 Author: Tina Gunderson
 Maintainer: Tina Gunderson <gunde207@umn.edu>
@@ -12,6 +12,6 @@ Description: This package extends the function of the LiquidAssociation
         subsequent significance analyses.
 Depends: methods, WGCNA, LiquidAssociation, parallel, stats
 Suggests: GOstats, yeastCC, org.Sc.sgd.db
-biocViews: Software, Bioinformatics
+biocViews: Software
 License: GPL-2
 LazyLoad: yes
