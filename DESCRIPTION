@@ -1,10 +1,10 @@
 Package: fastLiquidAssociation
 Type: Package
 Title: functions for genome-wide application of Liquid Association
-Version: 1.1.1
+Version: 1.1.2
 Date: 2013-12-08
 Author: Tina Gunderson
-Maintainer: Tina Gunderson <gunde207@umn.edu>
+Maintainer: Tina Gunderson <gunderson.tina@gmail.com>
 Description: This package extends the function of the LiquidAssociation
         package for genome-wide application. It integrates a screening
         method into the LA analysis to reduce the number of triplets to
