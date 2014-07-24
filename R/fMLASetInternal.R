@@ -56,6 +56,9 @@ jobsplit <- function(ival=1, data, topn=5000, rvalue=0.5, cut=4){
 	top <- matrix(NA,ncol=5,nrow=topn)
 	data.cor <- data[,-ival]
 	third <- data[,ival]
+if(length(unique(third))<3){
+	return(top)
+	} else {
 #data sorted based on column input, separates into high vs low expression 
 #based on gene in third position
 	subset <- !is.na(third)
@@ -95,8 +98,8 @@ jobsplit <- function(ival=1, data, topn=5000, rvalue=0.5, cut=4){
 	} 
 	return(top)
 	}
+	}
 wrapper<-function(data, topn, nvec, rvalue, cut){
-	##this is the point where the code is running into problems
 	outlist <- mclapply(nvec, jobsplit, data=data, topn=topn, rvalue=rvalue, cut=cut)
 	outlist <- do.call(rbind,outlist)
 	nreturn <- c(topn,nrow(outlist))
@@ -104,7 +107,6 @@ wrapper<-function(data, topn, nvec, rvalue, cut){
 	return(na.omit(toplt))
 }
 namesfun<-function(toplt,data){
-	###print(6)
 	ival <- toplt[3]
 	short <- colnames(data[,-ival])
 	long <- colnames(data)

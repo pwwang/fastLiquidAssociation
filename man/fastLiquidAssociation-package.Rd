@@ -20,7 +20,7 @@ Contains three external functions: fastMLA, mass.CNM, and fastboots.GLA. fastMLA
 }
 \author{
 Author: Tina Gunderson
-Maintainer: Tina Gunderson <gunde207@umn.edu>
+Maintainer: Tina Gunderson <gunderson.tina@gmail.com>
 }
 \references{
 [1] Yen-Yi Ho, Giovanni Parmigiani, Thomas A Louis, and Leslie M Cope. Modeling liquid association.
@@ -40,9 +40,8 @@ genes of the yeast saccharomyces cerevisiae by microarray hybridization. Molecul
 LiquidAssociation,WGCNA,parallel,yeastCC,GOstats,org.Sc.sgd.db
 }
 \examples{
-library(LiquidAssociation)
+library(fastLiquidAssociation)
 library(yeastCC)
-library(WGCNA)
 data(spYCCES)
 lae <- spYCCES[,-(1:4)]
 ### get rid of samples with high % NA elements
@@ -51,7 +50,7 @@ data <- t(exprs(lae))
 data <- data[,1:50]
 
 ##fastMLA
-example <- fastMLA(data=data, topn=25, nvec=1:10, rvalue=1.0, cut=4)
+example <- fastMLA(data=data, topn=25, nvec=1:10, rvalue=1.0, cut=4, threads = detectCores())
 example[1:5,]
 
 ##mass.CNM
@@ -63,5 +62,6 @@ clust <- makeCluster(4)
 ex <- example[1:5,]
 GLAeasy <- fastboots.GLA(ex, data=data, clust=clust, boots=30, perm=100, cut=4)
 GLAeasy
+stopCluster(clust)
 }
  

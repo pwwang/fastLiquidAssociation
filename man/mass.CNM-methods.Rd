@@ -49,7 +49,7 @@ fastMLA, LiquidAssociation
 selectMethod("mass.CNM", signature=c("matrix","data.frame"))
 
 #
-library(LiquidAssociation)
+library(fastLiquidAssociation)
 library(yeastCC)
 data(spYCCES)
 lae <- spYCCES[,-(1:4)]

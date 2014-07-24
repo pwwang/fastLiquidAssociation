@@ -9,7 +9,7 @@
 Function reduces the processing power and memory needed to calculate modified liquid association (MLA) values for a genome by using a pre-screening method to reduce the candidate pool to triplets likely to have a high MLA value. It does this using matrix algebra to create an approximation to the direct MLA estimate for all possible pairs of X1X2|X3. 
 }
 \usage{
-fastMLA(data, topn = 2000, nvec = 1, rvalue = 0.5, cut = 4)
+fastMLA(data, topn = 2000, nvec = 1, rvalue = 0.5, cut = 4, threads = detectCores())
 }
 \arguments{
   \item{data}{
@@ -19,13 +19,16 @@ Matrix of numeric data, with columns representing genes and rows representing ob
 Number of results to return, ordered from highest |MLA| value descending. 
 }
   \item{nvec}{
-Numeric vector the gene(s) to use in the X3 position of the X1X2|X3 screening. This should be a numeric vector representing the column #(s) of the gene.
+Numeric vector of the gene(s) to use in the X3 position of the X1X2|X3 screening. This should be a numeric vector representing the column #(s) of the gene.
 }
   \item{rvalue}{
-tolerance value for LA approximation. Lower values of rvalue will cause a more thorough search, but take longer.
+Tolerance value for LA approximation. Lower values of rvalue will cause a more thorough search, but take longer.
 }
   \item{cut}{
 Value passed to the GLA function to create buckets (equal to number of buckets+1). Values placing between 15-30 samples per bucket are optimal. Must be a positive integer>1. See GLA.
+}
+  \item{threads}{
+Number of cores to use for multi-threading in correlation calculation (enableWGCNAThreads argument). See WGCNA.
 }
 }
 
@@ -61,9 +64,8 @@ The data matrix must be numeric.
 selectMethod("fastMLA", "matrix")
 
 #
-library(LiquidAssociation)
+library(fastLiquidAssociation)
 library(yeastCC)
-library(WGCNA)
 data(spYCCES)
 lae <- spYCCES[,-(1:4)]
 ### get rid of samples with high % NA elements
