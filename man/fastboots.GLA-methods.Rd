@@ -79,5 +79,7 @@ example <- fastMLA(data=data, topn=25, nvec=1:10, rvalue=1.0, cut=4)
 clust <- makeCluster(4)
 ex <- example[1:5,]
 GLAeasy <- fastboots.GLA(ex, data=data, clust=clust, boots=30, perm=100, cut=4)
+stopCluster(clust)
 GLAeasy
+
 }

@@ -247,6 +247,11 @@ rownames(umat) <- names
 colnames(umat) <- c("GO description","Associated genes")
 umat
 @
+
+<<stopCluster, echo=FALSE>>
+stopCluster(clust)
+@
+
 \section{References}
 \bibliographystyle{plain} 
 \bibliography{PlanBJabref}
