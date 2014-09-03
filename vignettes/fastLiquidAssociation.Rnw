@@ -195,7 +195,6 @@ set.seed(1)
 system.time(GLAtwo <- fastboots.GLA(tripmat=boottrips,data=fulldata, 
 clust=clust, boots=30, perm=500, cut=4))
 GLAtwo
-stopCluster(clust)
 @
 \textit{tripmat} here is the list of triplets where a direct estimate is needed. The \textit{data} is the numeric matrix of data used in both the \textbf{fastMLA} and \textbf{mass.CNM} functions. \textit{clust} is a cluster of CPU cores to use in parallelization, created by a call to the \textbf{makeCluster} function from package parallel. The \textit{boots} argument specifies the number of bootstrap iterations for estimating the bootstrap standard error. The \textit{perm} argument specifies the number of iterations to calculate the permuted p-value. Given that the results of the permutations depend on random number generation, for reproduciblity here we use the set.seed option. The \textit{cut} option is used to determine the number of ``buckets'' to used in the estimation procedure.\\
 \indent Because the normalization of the data matrix is incorporated into the \textbf{fastboots.GLA} function, the full time decrease is not apparent until the number of iterations significantly exceeds the time to normalize the data matrix or the number of triplets to test increases. This is partially displayed in the example, where even the calculation of two triplets has a lower processing time than the single triplet run serially.\\
@@ -248,7 +247,7 @@ colnames(umat) <- c("GO description","Associated genes")
 umat
 @
 
-<<stopCluster, echo=FALSE>>
+<<stopCluster, echo=FALSE>>=
 stopCluster(clust)
 @
 
