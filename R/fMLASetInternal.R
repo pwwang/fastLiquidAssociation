@@ -103,7 +103,7 @@ wrapper<-function(data, topn, nvec, rvalue, cut){
 	outlist <- mclapply(nvec, jobsplit, data=data, topn=topn, rvalue=rvalue, cut=cut)
 	outlist <- do.call(rbind,outlist)
 	nreturn <- c(topn,nrow(outlist))
-	toplt <- head(outlist[order(abs(outlist[,5]),decreasing=T),],min(nreturn))
+	toplt <- head(outlist[order(abs(outlist[,5]),decreasing=TRUE),],min(nreturn))
 	return(na.omit(toplt))
 }
 namesfun<-function(toplt,data){

@@ -35,6 +35,7 @@ setMethod("fastMLA",signature(data="matrix"),
 	colnames(finalout) <- c("X1 or X2","X2 or X1","X3","rhodiff","MLA value")
 	return(finalout)
 	}
+	closeAllConnections()
 	}
 )
 
@@ -72,7 +73,7 @@ setMethod("mass.CNM",signature(data="matrix",GLA.mat="data.frame"),
 	highps[,4:9] <- round(apply(highps[,4:9],2,as.numeric),4)
 	} else {
 	pvalmat <- comp.full
-	highps <- head(pvalmat[order(as.numeric(pvalmat[,9]),-(as.numeric(pvalmat[,8])),decreasing=F),],min(nback,nrow(pvalmat)))
+	highps <- head(pvalmat[order(as.numeric(pvalmat[,9]),-(as.numeric(pvalmat[,8])),decreasing=FALSE),],min(nback,nrow(pvalmat)))
 	highps[,4:9] <- round(apply(highps[,4:9],2,as.numeric),2)
 	}
 	convert <- matrix(as.numeric(highps[,4:9]),byrow=FALSE,ncol=6)
@@ -81,6 +82,7 @@ setMethod("mass.CNM",signature(data="matrix",GLA.mat="data.frame"),
 	output <- list(highps, rpts.simple)
 	names(output) <- c("top p-values","bootstrap triplets")
 	return(output)
+	closeAllConnections()
 	}
 )
 
@@ -120,7 +122,7 @@ setMethod("fastboots.GLA",signature(data="matrix"),
 	bootslist[[1]] <- dat.s[,tripmat[1:3]]
 	tripmat <- matrix(tripmat,nrow=1)
 	resmat <- clusterGLA(bootslist[[1]],boots=boots, clust, perm=perm, cut=cut, dim=3)
-	results <- matrix(unlist(resmat),ncol=2,byrow=T)
+	results <- matrix(unlist(resmat),ncol=2,byrow=TRUE)
 	} else {
 	tripmat <- as.matrix(tripmat)
 	bootslist <- makelist(tripmat,dat.s)
@@ -133,6 +135,7 @@ setMethod("fastboots.GLA",signature(data="matrix"),
 	colnames(newmat) <- c("X1 or X2","X2 or X1","X3","rhodiff","MLA value","MLA stat","boots p-value")
 	#stopCluster(clust)
 	return(newmat)
+	closeAllConnections()
 	}
 )
 

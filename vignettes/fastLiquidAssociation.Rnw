@@ -101,7 +101,7 @@ detectCores()
 example <- fastMLA(data=data,topn=50,nvec=1:5,rvalue=0.5,cut=4,threads=detectCores())
 example[1:5,]
 @
-\indent The arguments to the \textbf{fastMLA} function are a matrix of numerical data with genes as columns(\textit{data}), the number of results to return (\textit{topn}), the column numbers of the genes to test (\textit{nvec}), the $|\rho_{diff}|$ cutoff to use (\textit{rvalue}), and the \textit{cut} argument to pass to the GLA function from the LiquidAssociation package. The \textit{cut} argument will depend on the number of observations in the data. Based on data from Ho et al.~\cite{Ho2011}, the number of observations per bin should be in the 15-30 range for maximum specificity. The \textit{cut} argument is equal to the number of bins plus one. Hence in this example, as we have 73 observations, we chose to se the \textit{cut} value at 4.  The maximum \textit{rvalue} is theoretically 2 (as $\rho_{diff} = |\rho_{high} - \rho_{low}|$ and -1 $\le \rho_{X_{1},X_{2}} \le$ 1). The default value is set at 0.5 or 25$\%$ of the realizable correlation difference, however $|\rho_{diff}|$ a.k.a. \textit{rvalue} was set at 1.1 in our example above for speed purposes. Caution should be used when determining the \textit{rvalue}. Too high a value risks missing those triplets whose MLA values are not fully reflected by the more simplistic correlation, while too low a value approaches testing all possible triplets and forfeits any increase in testing efficiency. \footnote{The fastMLA function incorporates the more efficient correlation calculation of the \textbf{cor} function in the WGCNA package~\cite{Langfelder2008}.}\\
+\indent The arguments to the \textbf{fastMLA} function are a matrix of numerical data with genes as columns(\textit{data}), the number of results to return (\textit{topn}), the column numbers of the genes to test (\textit{nvec}), the $|\rho_{diff}|$ cutoff to use (\textit{rvalue}), the \textit{cut} argument to pass to the GLA function from the LiquidAssociation package, and the number of processors available to use for increasing the speed of calculation for correlation values (\textit{threads})(for a fuller discussion of this argument please see the WGCNA package documentation, for a discussion of parallelization please see the section in this vignette entitled "Parallelization of the Direct Estimate"). The \textit{cut} argument will depend on the number of observations in the data. Based on data from Ho et al.~\cite{Ho2011}, the number of observations per bin should be in the 15-30 range for maximum specificity. The \textit{cut} argument is equal to the number of bins plus one. Hence in this example, as we have 73 observations, we chose to se the \textit{cut} value at 4.  The maximum \textit{rvalue} is theoretically 2 (as $\rho_{diff} = |\rho_{high} - \rho_{low}|$ and -1 $\le \rho_{X_{1},X_{2}} \le$ 1). The default value is set at 0.5 or 25$\%$ of the realizable correlation difference, however $|\rho_{diff}|$ a.k.a. \textit{rvalue} was set at 1.1 in our example above for speed purposes. Caution should be used when determining the \textit{rvalue}. Too high a value risks missing those triplets whose MLA values are not fully reflected by the more simplistic correlation, while too low a value approaches testing all possible triplets and forfeits any increase in testing efficiency. \footnote{The fastMLA function incorporates the more efficient correlation calculation of the \textbf{cor} function in the WGCNA package~\cite{Langfelder2008}.}\\
 \subsection{Functions of the Conditional Normal Model}
 \indent Two options for calculating significance are included in this package, \textbf{mass.CNM} which relies on estimation of parameters from a conditional normal model and \textbf{fastboots.GLA} which uses a more robust direct estimate method. Both functions return unadjusted p-values. The CNM model is written as: 
 \begin{eqnarray*}
@@ -144,8 +144,8 @@ In the above example, we apply the \textbf{mass.CNM} function to the results of 
 \subsection{Parallelization of the Direct Estimate}
 As mentioned before, for triplets that when tested with the full or simple models did not return sensible values, a direct estimator is available. The \textbf{fastboots.GLA} function makes use of the increased processing power that has become more widely available, both on standard desktops and servers. It is an updated and parallelized version of the getsGLA function available in the LiquidAssociation package. As the standard error in the direct estimate relies on bootstrapping and the significance calculations can require a large number of iterations, we sought a more efficient method to increase efficiency. \\
 \indent Parallelization has as its basis the idea that large problems (e.g. a high number of calculations) can be split into smaller problems that are being run at the same time, rather than sequentially. Parallelization of processes makes sense when each process itself takes significantly longer to complete than to allocate. \\In the below example, we use the \textbf{detectCores} function from the parallel package to detect the number of CPU cores. On systems where more processors are available, e.g. servers for supercomputing which normally have multiple nodes of several processors each, it is possible to set a larger number of cores than the \textbf{detectCores} function may detect.\\
-\indent \textbf{fastboots.GLA} is intended to be used with the results of a call to \textbf{mass.CNM}, specifically the output labelled bootstrap triplets. The \textbf{fastboots.GLA} function is intended for use on multicore systems in order to make use of possible parallelization. While it can be used on a single core system, there would be no speed benefit over the \textbf{getsGLA} function available in the LiquidAssociation package, though the \textbf{fastboots.GLA} function does resolve an error in the \textbf{getsGLA} function that can be caused by data redundancy. In the below example, we are using a quad-core system.
-%closeAllConnections()
+\indent \textbf{fastboots.GLA} is intended to be used with the results of a call to \textbf{mass.CNM}, specifically the output labelled bootstrap triplets. The \textbf{fastboots.GLA} function is intended for use on multicore systems in order to make use of possible parallelization. While it can be used on a single core system, there would be no speed benefit over the \textbf{getsGLA} function available in the LiquidAssociation package, though the \textbf{fastboots.GLA} function does resolve an error in the \textbf{getsGLA} function that can be caused by data redundancy. In the below example, we are using a six core system.
+
 <<Time comparison>>=
  
 #determine number of processors for multicore systems
@@ -155,40 +155,42 @@ clust <- makeCluster(cores)
 boottrips <- CNMother[[2]]
 dim(boottrips)
 @
-<<Quantile normalization, echo=FALSE>>=
-stand2 <- function(object){
-	ans <- (object-mean(object,na.rm=TRUE))/sd(object,na.rm=TRUE)
-	return(ans)
-}
+%<<Quantile normalization, echo=FALSE>>=
+%stand2 <- function(object){
+%	ans <- (object-mean(object,na.rm=TRUE))/sd(object,na.rm=TRUE)
+%	return(ans)
+%}
 
-quant.norm <- function(vector){
-	myvect <- vector
-	n <- sum(as.numeric(!is.na(myvect)))
-	rmyvect <- rank(myvect,na.last="keep")/(n+1)
-	nmyvect <- sapply(rmyvect, qnorm)
-	return(nmyvect)
-}
+%quant.norm <- function(vector){
+%	myvect <- vector
+%	n <- sum(as.numeric(!is.na(myvect)))
+%	rmyvect <- rank(myvect,na.last="keep")/(n+1)
+%	nmyvect <- sapply(rmyvect, qnorm)
+%	return(nmyvect)
+%}
 
-dat.q <- apply(fulldata,2,quant.norm)
-qnormdata <- apply(dat.q,2,stand2)
-@
-Below we show a comparison of processing speed between the original getsGLA function
-and the fastboots.GLA function. qnormdata is a quantile normalized version of the full data set
-
+%dat.q <- apply(fulldata,2,quant.norm)
+%qnormdata <- apply(dat.q,2,stand2)
+%@
+Below we an example of processing speed with the fastboots.GLA function. Using the getsGLA function from the LiquidAssociation package, the triplet had the following values: \footnote{The original getsGLA code is not called here as it sometimes produces an error due to non-unique cut values with higher numbers of permutations.}\\\\
+\begin{tabular}{r r r | r r 
+} 
+ user & system & elapsed & sGLA & p value \\ 
+ 30.85 & 0.01 & 30.92 & 5.25 & 0.00000 \\ 
+\end{tabular}
+ 
+%qnormdata is a quantile normalized version of the full data set.
+%bootlist <- qnormdata[,boottrips[1,1:3]]
+%dim(bootlist)
 <<Speed Test>>=
  
-bootlist <- qnormdata[,boottrips[1,1:3]]
-dim(bootlist)
-#We take the results for the first triplet and put it in matrix format 
+#We take the results for the single triplet and put it in matrix format 
 example.boots <- t(as.matrix(boottrips[1,]))
 dim(example.boots)
 set.seed(1)
 system.time(GLAnew <- fastboots.GLA(tripmat=example.boots,data=fulldata, 
 clust=clust, boots=30, perm=500, cut=4))
-set.seed(1)
-system.time(GLAold <- getsGLA(bootlist,perm=500,boots=30, cut=4))
 GLAnew
-GLAold
 
 #the matrix conversion is not needed for the 2 line result
 set.seed(1)

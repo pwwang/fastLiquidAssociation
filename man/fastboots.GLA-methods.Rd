@@ -81,5 +81,5 @@ ex <- example[1:5,]
 GLAeasy <- fastboots.GLA(ex, data=data, clust=clust, boots=30, perm=100, cut=4)
 stopCluster(clust)
 GLAeasy
-
+closeAllConnections()
 }

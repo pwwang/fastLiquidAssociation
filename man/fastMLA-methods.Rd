@@ -75,5 +75,5 @@ data <- data[,1:50]
 
 example <- fastMLA(data=data, topn=25, nvec=1:10, rvalue=1.0, cut=4)
 example[1:5,]
-
+closeAllConnections()
 }

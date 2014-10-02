@@ -1,16 +1,13 @@
 Package: fastLiquidAssociation
 Type: Package
 Title: functions for genome-wide application of Liquid Association
-Version: 1.1.5
-Date: 2014-07-20
+Version: 1.1.6
+Date: 2014-10-01
 Author: Tina Gunderson
 Maintainer: Tina Gunderson <gunderson.tina@gmail.com>
-Description: This package extends the function of the LiquidAssociation
-        package for genome-wide application. It integrates a screening
-        method into the LA analysis to reduce the number of triplets to
-        be examined for a high LA value and provides code for use in
-        subsequent significance analyses.
-Depends: methods, WGCNA, LiquidAssociation, parallel, stats, Hmisc
+Description: This package extends the function of the LiquidAssociation package for genome-wide application. It integrates a screening method into the LA analysis to reduce the number of triplets to be examined for a high LA value and provides code for use in subsequent significance analyses.
+Depends: methods, LiquidAssociation, parallel, stats, Hmisc
+Imports: WGCNA
 Suggests: GOstats, yeastCC, org.Sc.sgd.db
 biocViews: Software, GeneExpression, Genetics, Pathways, CellBiology
 License: GPL-2

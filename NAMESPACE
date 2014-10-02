@@ -1,6 +1,6 @@
 import(methods)
 importMethodsFrom(LiquidAssociation, CNM.full, CNM.simple, GLA)
-importFrom(WGCNA, cor)
+importFrom(WGCNA, cor, enableWGCNAThreads)
 importFrom(LiquidAssociation, CNM.full, CNM.simple, GLA)
 importFrom(parallel, makeCluster, mclapply, parLapply, detectCores, stopCluster)
 importFrom(stats, qnorm, quantile, sd)
