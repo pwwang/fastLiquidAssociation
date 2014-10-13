@@ -10,10 +10,10 @@ This package provides three external functions to extend liquid association (LA)
 }
 \details{
 \tabular{ll}{
-Package: \tab fastLA\cr
+Package: \tab fastLiquidAssociation\cr
 Type: \tab Package\cr
-Version: \tab 1.0\cr
-Date: \tab 2013-12-08\cr
+Version: \tab 1.1.7\cr
+Date: \tab 2014-10-01\cr
 License: \tab GPL-2\cr
 }
 Contains three external functions: fastMLA, mass.CNM, and fastboots.GLA. fastMLA uses an algorithm to approximate liquid association values in order to screen for a subset likely to have high LA values and then evaluates that subset for their LA values. mass.CNM takes the results from fastMLA and attempts to estimate significance based on conditional normal models. In the event that mass.CNM is unable to provide an estimate, fastboots.GLA parallelizes the bootstrapping required to produce a more robust direct estimate for LA. 
@@ -40,7 +40,6 @@ genes of the yeast saccharomyces cerevisiae by microarray hybridization. Molecul
 LiquidAssociation,WGCNA,parallel,yeastCC,GOstats,org.Sc.sgd.db
 }
 \examples{
-library(fastLiquidAssociation)
 library(yeastCC)
 data(spYCCES)
 lae <- spYCCES[,-(1:4)]

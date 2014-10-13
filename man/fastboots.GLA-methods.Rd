@@ -63,10 +63,7 @@ fastMLA, mass.CNM, LiquidAssociation, parallel
 selectMethod("fastboots.GLA", signature=c("ANY","matrix"))
 
 #
-library(LiquidAssociation)
 library(yeastCC)
-library(org.Sc.sgd.db)
-library(WGCNA)
 data(spYCCES)
 lae <- spYCCES[,-(1:4)]
 ### get rid of samples with high NA elements
@@ -79,7 +76,7 @@ example <- fastMLA(data=data, topn=25, nvec=1:10, rvalue=1.0, cut=4)
 clust <- makeCluster(4)
 ex <- example[1:5,]
 GLAeasy <- fastboots.GLA(ex, data=data, clust=clust, boots=30, perm=100, cut=4)
-stopCluster(clust)
 GLAeasy
+stopCluster(clust)
 closeAllConnections()
 }

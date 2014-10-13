@@ -60,4 +60,5 @@ data <- data[,1:50]
 example <- fastMLA(data=data, topn=25, nvec=1:10, rvalue=1.0, cut=4)
 CNMcalc <- mass.CNM(data=data, GLA.mat=example, nback=10)
 CNMcalc
+closeAllConnections()
 }
