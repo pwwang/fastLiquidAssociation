@@ -256,7 +256,7 @@ umat
 \section{Session Information}
 <<Session info, echo=FALSE>>=
 sessionInfo()
-closeAllConnections()
+#closeAllConnections()
 @
 \end{document}
 
