@@ -26,7 +26,7 @@ setMethod("fastMLA",signature(data="matrix"),
 	dat.q <- apply(data,2,quant.norm)
 	dat.s <- apply(dat.q,2,stand2)
 	numbers <- wrapper(dat.s,topn,nvec,rvalue,cut)
-	disableWGCNAThreads()
+	WGCNA::disableWGCNAThreads()
 	doParallel:::stopImplicitCluster()
 	if(nrow(numbers)<1){
 	finalout<-NULL
