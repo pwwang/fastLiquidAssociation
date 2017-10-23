@@ -26,8 +26,6 @@ setMethod("fastMLA",signature(data="matrix"),
 	dat.q <- apply(data,2,quant.norm)
 	dat.s <- apply(dat.q,2,stand2)
 	numbers <- wrapper(dat.s,topn,nvec,rvalue,cut)
-	WGCNA::disableWGCNAThreads()
-	doParallel:::stopImplicitCluster()
 	if(nrow(numbers)<1){
 	finalout<-NULL
 	return(finalout)
@@ -37,7 +35,7 @@ setMethod("fastMLA",signature(data="matrix"),
 	colnames(finalout) <- c("X1 or X2","X2 or X1","X3","rhodiff","MLA value")
 	return(finalout)
 	}
-	closeAllConnections()
+	doParallel::stopImplicitCluster()
 	}
 )
 
@@ -84,7 +82,7 @@ setMethod("mass.CNM",signature(data="matrix",GLA.mat="data.frame"),
 	output <- list(highps, rpts.simple)
 	names(output) <- c("top p-values","bootstrap triplets")
 	return(output)
-	closeAllConnections()
+	stopImplicitCluster()
 	}
 )
 
@@ -137,7 +135,7 @@ setMethod("fastboots.GLA",signature(data="matrix"),
 	colnames(newmat) <- c("X1 or X2","X2 or X1","X3","rhodiff","MLA value","MLA stat","boots p-value")
 	#stopCluster(clust)
 	return(newmat)
-	closeAllConnections()
+	stopImplicitCluster()
 	}
 )
 
