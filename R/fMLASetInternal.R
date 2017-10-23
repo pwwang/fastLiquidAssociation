@@ -238,7 +238,7 @@ clusterGLA <- function(object, boots=30, clust, perm=100, cut=4, dim=3, geneMap=
 		data <- apply(data, 2, stand)
 		x <- seq(0,1, length=cut)
 		br <- quantile(data[,dim], prob=x)
-		index <- as.numeric(cut(data[,dim], breaks=br))
+		index <- as.numeric(Hmisc::cut2(data[, dim], g=(cut-1)))
 		tab <- table(index)
 		tab <- tab[tab > 2]
 		vect <- as.numeric(names(tab))
