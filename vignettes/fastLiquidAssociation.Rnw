@@ -21,11 +21,14 @@
 \title{The fastLiquidAssociation Package}
 \author{Tina Gunderson}
 \begin{document}
+\SweaveOpts{concordance=TRUE}
 \maketitle
 \tikzstyle{decision} = [diamond, draw, fill=blue!20, 
     text width=4.5em, text badly centered, node distance=3cm, inner sep=0pt]
 \tikzstyle{block} = [rectangle, draw, fill=blue!20, 
     text width=10em, text centered, rounded corners, minimum height=4em]
+\tikzstyle{block2} = [rectangle, draw, fill = yellow!20,
+    text width = 10em, text centered, minimum height = 4em]
 \tikzstyle{line} = [draw, -latex']
 \tikzstyle{cloud} = [draw, ellipse,fill=red!20, node distance=3cm,
     minimum height=4em]
@@ -50,10 +53,10 @@ The fastLiquidAssociation package is intended to provide more efficient tools fo
 	\node [block, below of=raw, , node distance=2cm, align=center] (genes) {\textbf{Preprocessing}};
     \node [block, below of=genes, node distance=3cm,align=center] (fgla) {\textbf{fastMLA}};
     \node [block, below of=fgla, node distance=3cm,align=center] (cnm) {\textbf{mass.CNM}\\significance testing};
-    \node [decision, below of=cnm, node distance=4cm] (decide) {\small Does the full CNM model fit the triplet data well?\\(part of \textbf{mass.CNM})};
+    \node [block2, below of=cnm, node distance=4cm] (decide) {\small Does the full CNM model fit the triplet data well?\\(part of \textbf{mass.CNM})};
     \node [block, below of=decide, node distance=4cm,align=center] (yesp) {\small combine results from \textbf{fastboots.GLA} and \textbf{mass.CNM}\\
 		\small{calculate adjusted p-values}};
-    \node [decision, left of=decide, node distance=3cm, xshift=-3cm] (update) {\small Does the simple CNM model fit the triplet data well?\\(part of \textbf{mass.CNM})};
+    \node [block2, left of=decide, node distance=3cm, xshift=-3cm] (update) {\small Does the simple CNM model fit the triplet data well?\\(part of \textbf{mass.CNM})};
     \node [block, below of=update, node distance=4cm] (update2) {\textbf{fastboots.GLA}\\perform robust estimation and bootstrapping};
 	\node [block, below of=yesp, node distance =3cm,align=center] (gsa) {\textbf{gene set analysis}};
 	\node [block, right of=yesp, node distance =3cm, xshift=2cm,align=center] (set) {specify set of\\ ``interesting triplets''};
@@ -78,15 +81,18 @@ The fastLiquidAssociation package is intended to provide more efficient tools fo
 Here we present an example of package usage on a smaller data set. We start by loading the \R{} package and the example data. In this package, we use the yeast cell cycle gene expression data by Spellman ~\cite{Spellman1998}. The data can be obtained through package yeastCC. The annotation package for the yeast experiment \textit{org.Sc.sgd.db} can be obtained through Bioconductor. 
 \\
 \subsection{fastMLA}
-<<SuppressLoadData, echo=FALSE>>=
-library(WGCNA)
+<<SuppressLoadData, echo = FALSE, results = hide>>=
+suppressPackageStartupMessages(library(WGCNA))
+library(impute)
+library(preprocessCore)
 library(LiquidAssociation)
 library(parallel)
+library(doParallel)
 @
 <<loadData>>=
 library(fastLiquidAssociation)
-library(yeastCC)
-library(org.Sc.sgd.db)
+suppressMessages(library(yeastCC))
+suppressMessages(library(org.Sc.sgd.db))
 data(spYCCES)
 lae <- spYCCES[,-(1:4)]
 ### get rid of samples with high % NA elements
@@ -101,6 +107,12 @@ detectCores()
 example <- fastMLA(data=data,topn=50,nvec=1:5,rvalue=0.5,cut=4,threads=detectCores())
 example[1:5,]
 @
+
+<<stopCluster1, echo=FALSE>>=
+stopImplicitCluster()
+# closeAllConnections()
+@
+
 \indent The arguments to the \textbf{fastMLA} function are a matrix of numerical data with genes as columns(\textit{data}), the number of results to return (\textit{topn}), the column numbers of the genes to test (\textit{nvec}), the $|\rho_{diff}|$ cutoff to use (\textit{rvalue}), the \textit{cut} argument to pass to the GLA function from the LiquidAssociation package, and the number of processors available to use for increasing the speed of calculation for correlation values (\textit{threads})(for a fuller discussion of this argument please see the WGCNA package documentation, for a discussion of parallelization please see the section in this vignette entitled "Parallelization of the Direct Estimate"). The \textit{cut} argument will depend on the number of observations in the data. Based on data from Ho et al.~\cite{Ho2011}, the number of observations per bin should be in the 15-30 range for maximum specificity. The \textit{cut} argument is equal to the number of bins plus one. Hence in this example, as we have 73 observations, we chose to se the \textit{cut} value at 4.  The maximum \textit{rvalue} is theoretically 2 (as $\rho_{diff} = |\rho_{high} - \rho_{low}|$ and -1 $\le \rho_{X_{1},X_{2}} \le$ 1). The default value is set at 0.5 or 25$\%$ of the realizable correlation difference, however $|\rho_{diff}|$ a.k.a. \textit{rvalue} was set at 1.1 in our example above for speed purposes. Caution should be used when determining the \textit{rvalue}. Too high a value risks missing those triplets whose MLA values are not fully reflected by the more simplistic correlation, while too low a value approaches testing all possible triplets and forfeits any increase in testing efficiency. \footnote{The fastMLA function incorporates the more efficient correlation calculation of the \textbf{cor} function in the WGCNA package~\cite{Langfelder2008}.}\\
 \subsection{Functions of the Conditional Normal Model}
 \indent Two options for calculating significance are included in this package, \textbf{mass.CNM} which relies on estimation of parameters from a conditional normal model and \textbf{fastboots.GLA} which uses a more robust direct estimate method. Both functions return unadjusted p-values. The CNM model is written as: 
@@ -149,29 +161,12 @@ As mentioned before, for triplets that when tested with the full or simple model
 <<Time comparison>>=
  
 #determine number of processors for multicore systems
-cores <- detectCores()
-cores
-clust <- makeCluster(cores)
+clust <- makeCluster(detectCores())
+registerDoParallel(clust)
 boottrips <- CNMother[[2]]
 dim(boottrips)
 @
-%<<Quantile normalization, echo=FALSE>>=
-%stand2 <- function(object){
-%	ans <- (object-mean(object,na.rm=TRUE))/sd(object,na.rm=TRUE)
-%	return(ans)
-%}
 
-%quant.norm <- function(vector){
-%	myvect <- vector
-%	n <- sum(as.numeric(!is.na(myvect)))
-%	rmyvect <- rank(myvect,na.last="keep")/(n+1)
-%	nmyvect <- sapply(rmyvect, qnorm)
-%	return(nmyvect)
-%}
-
-%dat.q <- apply(fulldata,2,quant.norm)
-%qnormdata <- apply(dat.q,2,stand2)
-%@
 Below we an example of processing speed with the fastboots.GLA function. Using the getsGLA function from the LiquidAssociation package, the triplet had the following values: \footnote{The original getsGLA code is not called here as it sometimes produces an error due to non-unique cut values with higher numbers of permutations.}\\\\
 \begin{tabular}{r r r | r r 
 } 
@@ -185,7 +180,7 @@ Below we an example of processing speed with the fastboots.GLA function. Using t
 <<Speed Test>>=
  
 #We take the results for the single triplet and put it in matrix format 
-example.boots <- t(as.matrix(boottrips[1,]))
+example.boots <- boottrips[1, , drop = FALSE]
 dim(example.boots)
 set.seed(1)
 system.time(GLAnew <- fastboots.GLA(tripmat=example.boots,data=fulldata, 
@@ -197,6 +192,8 @@ set.seed(1)
 system.time(GLAtwo <- fastboots.GLA(tripmat=boottrips,data=fulldata, 
 clust=clust, boots=30, perm=500, cut=4))
 GLAtwo
+
+#close the cluster
 stopCluster(clust)
 @
 \textit{tripmat} here is the list of triplets where a direct estimate is needed. The \textit{data} is the numeric matrix of data used in both the \textbf{fastMLA} and \textbf{mass.CNM} functions. \textit{clust} is a cluster of CPU cores to use in parallelization, created by a call to the \textbf{makeCluster} function from package parallel. The \textit{boots} argument specifies the number of bootstrap iterations for estimating the bootstrap standard error. The \textit{perm} argument specifies the number of iterations to calculate the permuted p-value. Given that the results of the permutations depend on random number generation, for reproduciblity here we use the set.seed option. The \textit{cut} option is used to determine the number of ``buckets'' to used in the estimation procedure.\\
@@ -235,11 +232,11 @@ mapid <- names(xx)
 ##creates list of GO ids
 genename1 <- lapply(orflist,function(x) xx[match(x,mapid)])
 ###
-###if reduced num of terms desired use next line else skip to next ##
-for(i in 1:length(genename1)){
-if (length(genename1[[i]])>10) genename1[[i]]<-genename1[[i]][1:10]
-}
-##for full list use below
+### if reduced num of terms desired run for statement below ##
+# for(i in 1:length(genename1)){
+# if (length(genename1[[i]])>10) genename1[[i]] <- genename1[[i]][1:10]
+# }
+## for full list use below
 genelist <- lapply(genename1,function(x) paste(x,collapse=", "))
 ugenes <- unlist(genelist)
 names <- sapply(names(ugenes), function(x) unlist(strsplit(x, split='.', fixed=TRUE))[1])
@@ -251,12 +248,12 @@ umat
 @
 
 \section{References}
-%\bibliographystyle{plain} 
+\bibliographystyle{plain} 
 \bibliography{PlanBJabref}
 \section{Session Information}
 <<Session info, echo=FALSE>>=
 sessionInfo()
-#closeAllConnections()
 @
+
 \end{document}
 
