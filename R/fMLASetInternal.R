@@ -39,7 +39,7 @@ exp.fun <- function(x){
 }
 
 stand2 <- function(object){
-	ans <- (object-mean(object,na.rm=T))/sd(object,na.rm=T)
+	ans <- (object-mean(object,na.rm=TRUE))/sd(object,na.rm=TRUE)
 	return(ans)
 }
 
