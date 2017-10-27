@@ -64,7 +64,6 @@ The data matrix must be numeric.
 selectMethod("fastMLA", "matrix")
 
 #
-library(fastLiquidAssociation)
 library(yeastCC)
 data(spYCCES)
 lae <- spYCCES[,-(1:4)]
