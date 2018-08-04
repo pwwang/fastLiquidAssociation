@@ -51,6 +51,39 @@ quant.norm <- function(vector){
 	return(nmyvect)
 }
 
+# updates LiquidAssociation's GLA function to call Hmisc's cut2 vs base cut to avoid breaks are not unique error 
+GLA <- function(object, cut=4, dim=3, geneMap=NULL){
+	if (!is.numeric(object))
+		stop("Input matrix must be numeric")
+	if(ncol(object)!=3)
+		stop("Input data must have three variables")
+	if (length(colnames(object))!=3 & length(geneMap)!=3)
+		stop("Please specify the names of three variables")
+	if (length(geneMap)==3)
+		colnames(object)<-names(geneMap)
+	data <- object[!is.na(object[,1]) & !is.na(object[,2]) & !is.na(object[,3]),]
+	data[,dim] <- qqnorm2(data[,dim])
+	data <- apply(data, 2, stand)
+	x <- seq(0,1, length=cut)
+	br <- quantile(data[,dim], prob=x)
+	index <- as.numeric(Hmisc::cut2(data[, dim], g=(cut-1)))
+	tab <- table(index)
+	tab <- tab[tab > 2]
+	vect <- as.numeric(names(tab))
+	m2 <- rep(0, length(vect))
+	cor.e <- rep(0, length(vect))
+	gla.x2 <- rep(0, length(vect))
+	for ( i in 1:length(vect)){
+		p <- which(index==vect[i])
+		m2[i] <- mean(data[p,dim])
+		cor.e[i] <- cor(data[p, -dim])[1,2]
+		gla.x2[i] <- cor.e[i]*m2[i]
+	}
+	ans <- mean(gla.x2)
+	names(ans) <- paste("GLA(", colnames(object)[1], ",", colnames(object)[2], "|", colnames(object)[3],")", sep="")
+	return(ans)
+	}
+
 #####internal to fastMLA
 jobsplit <- function(ival=1, data, topn=5000, rvalue=0.5, cut=4){
 	top <- matrix(NA,ncol=5,nrow=topn)
