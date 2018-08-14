@@ -89,7 +89,7 @@ jobsplit <- function(ival=1, data, topn=5000, rvalue=0.5, cut=4){
 	top <- matrix(NA,ncol=5,nrow=topn)
 	data.cor <- data[,-ival]
 	third <- data[,ival]
-if(length(unique(third))<3){
+if(length(unique(third))<3 | nlevels(Hmisc::cut2(data[,ival], g=3))< min(3, cut-1)){
 	return(top)
 	} else {
 #data sorted based on column input, separates into high vs low expression 
