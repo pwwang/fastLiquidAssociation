@@ -89,49 +89,54 @@ jobsplit <- function(ival=1, data, topn=5000, rvalue=0.5, cut=4){
 	top <- matrix(NA,ncol=5,nrow=topn)
 	data.cor <- data[,-ival]
 	third <- data[,ival]
-if(length(unique(third))<3 | nlevels(Hmisc::cut2(data[,ival], g=3))< min(3, cut-1)){
-	return(top)
+	if(length(unique(third))<3 | nlevels(Hmisc::cut2(data[,ival], g=3))< min(3, cut-1)){
+		return(top)
 	} else {
-#data sorted based on column input, separates into high vs low expression 
-#based on gene in third position
-	subset <- !is.na(third)
-	exp.vec <- exp.fun(third)
-	invec <- exp.vec[subset]
-	data.mat <- data.cor[subset,]
-	ones <- data.mat[which(invec==max(invec)),]
-	zeroes <- data.mat[which(invec==min(invec)),]
-#calculates correlation with call to WGCNA cor()
-#use="p" for pearson pairwise handling of missing data
-	rho.one <- WGCNA::cor(ones, use="p")
-	rho.zero <- WGCNA::cor(zeroes, use="p")
-	rho.diff <- rho.one-rho.zero
-	rho.diff[upper.tri(rho.diff,diag=TRUE)] <- NA
-#determines which pairs are greater than the specified correlation
-#code to examine rhodiff values
-	for(i in 1:(ncol(data.mat)-1)){
-	index <- which((abs(rho.diff[,i]))>rvalue, arr.ind=TRUE)
-	if (length(index)!=0){
-	res.mat <- matrix(NA,ncol=5,nrow=length(index))
-	res.mat[,1] <- i	
-	res.mat[,2] <- index
-	res.mat[,3] <- ival
-	res.mat[,4] <- rho.diff[,i][index]
-	GLAcalc <- function(subord,data.cor,third){
-		trip <- cbind(data.cor[,subord],third)
-		outGLA <- GLA(trip, dim=3, cut=cut)
-		return(outGLA)
+		#data sorted based on column input, separates into high vs low expression 
+		#based on gene in third position
+		subset <- !is.na(third)
+		exp.vec <- exp.fun(third)
+		invec <- exp.vec[subset]
+		data.mat <- data.cor[subset,]
+		ones <- data.mat[which(invec==max(invec)),]
+		zeroes <- data.mat[which(invec==min(invec)),]
+		#calculates correlation with call to WGCNA cor()
+		#use="p" for pearson pairwise handling of missing data
+		rho.one <- WGCNA::cor(ones, use="p")
+		rho.zero <- WGCNA::cor(zeroes, use="p")
+		rho.diff <- rho.one-rho.zero
+		rho.diff[upper.tri(rho.diff,diag=TRUE)] <- NA
+		#determines which pairs are greater than the specified correlation
+		#code to examine rhodiff values
+		for(i in 1:(ncol(data.mat)-1)){
+			# Edit by pwwang, exclude the third variable
+			if (i==ival) next
+			index <- which((abs(rho.diff[,i]))>rvalue, arr.ind=TRUE)
+			# Edit by pwwang, exclude the third variable
+			index <- index[index!=ival]
+			if (length(index)!=0){
+				res.mat <- matrix(NA,ncol=5,nrow=length(index))
+				res.mat[,1] <- i	
+				res.mat[,2] <- index
+				res.mat[,3] <- ival
+				res.mat[,4] <- rho.diff[,i][index]
+				GLAcalc <- function(subord,data.cor,third){
+					trip <- cbind(data.cor[,subord],third)
+					outGLA <- GLA(trip, dim=3, cut=cut)
+					return(outGLA)
+				}
+				if(length(index)==1){res.mat[,5]<-GLAcalc(res.mat[,1:2],data.cor=data.cor,third=third)
+				} else {
+					GLAtest <- apply(res.mat[,1:2],1,GLAcalc,data.cor=data.cor,third=third)
+					res.mat[,5] <- GLAtest
+				}
+				combine <- rbind(top,res.mat)
+				top <- head(combine[order(abs(combine[,5]),decreasing=T),],topn)
+			} else {top <- top}
+		} 
+		return(top)
 	}
-	if(length(index)==1){res.mat[,5]<-GLAcalc(res.mat[,1:2],data.cor=data.cor,third=third)
-	} else {
-	GLAtest <- apply(res.mat[,1:2],1,GLAcalc,data.cor=data.cor,third=third)
-	res.mat[,5] <- GLAtest}
-	combine <- rbind(top,res.mat)
-	top <- head(combine[order(abs(combine[,5]),decreasing=T),],topn)
-	} else {top <- top}
-	} 
-	return(top)
-	}
-	}
+}
 wrapper<-function(data, topn, nvec, rvalue, cut){
 	outlist <- mclapply(nvec, jobsplit, data=data, topn=topn, rvalue=rvalue, cut=cut)
 	outlist <- do.call(rbind,outlist)
