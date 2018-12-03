@@ -85,12 +85,12 @@ GLA <- function(object, cut=4, dim=3, geneMap=NULL){
 	}
 
 #####internal to fastMLA
-jobsplit <- function(ival=1, data, topn=5000, nvec=c(), rvalue=0.5, cut=4){
+jobsplit <- function(ival=1, data, topn=5000, nvec=NULL, rvalue=0.5, cut=4){
 	top <- matrix(NA,ncol=5,nrow=topn)
 	data.cor <- data[,-ival]
 	third <- data[,ival]
 	# pwwang
-	nvec <- unique(c(nvec, ival))
+	if (is.null(nvec)) nvec = c(ival)
 	if(length(unique(third))<3 | nlevels(Hmisc::cut2(data[,ival], g=3))< min(3, cut-1)){
 		return(top)
 	} else {
