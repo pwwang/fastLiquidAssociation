@@ -143,10 +143,10 @@ wrapper<-function(data, topn, nvec, rvalue, cut){
 	toplt <- head(outlist[order(abs(outlist[,5]),decreasing=TRUE),],min(nreturn))
 	return(na.omit(toplt))
 }
-namesfun<-function(toplt,data){
-	ival <- toplt[3]
-	short <- colnames(data[,-ival])
-	long <- colnames(data)
+namesfun<-function(toplt,data,nvec){
+	#ival <- toplt[3]
+	short <- colnames(data[,-nvec])
+	long  <- colnames(data)
 	outname <- cbind(short[toplt[1]],short[toplt[2]],long[toplt[3]])
 	return(outname)
 }
