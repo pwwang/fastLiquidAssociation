@@ -30,7 +30,7 @@ setMethod("fastMLA",signature(data="matrix"),
 	finalout<-NULL
 	return(finalout)
 	} else {
-	letters <- t(apply(numbers,1,namesfun,data=dat.s))
+	letters <- t(apply(numbers,1,namesfun,data=dat.s,nvec=nvec))
 	finalout <- data.frame(letters,round(numbers[,4:5],5),stringsAsFactors=FALSE)
 	colnames(finalout) <- c("X1 or X2","X2 or X1","X3","rhodiff","MLA value")
 	return(finalout)
