@@ -85,10 +85,12 @@ GLA <- function(object, cut=4, dim=3, geneMap=NULL){
 	}
 
 #####internal to fastMLA
-jobsplit <- function(ival=1, data, topn=5000, rvalue=0.5, cut=4){
+jobsplit <- function(ival=1, data, topn=5000, nvec=c(), rvalue=0.5, cut=4){
 	top <- matrix(NA,ncol=5,nrow=topn)
 	data.cor <- data[,-ival]
 	third <- data[,ival]
+	# pwwang
+	nvec <- unique(c(nvec, ival))
 	if(length(unique(third))<3 | nlevels(Hmisc::cut2(data[,ival], g=3))< min(3, cut-1)){
 		return(top)
 	} else {
@@ -110,10 +112,10 @@ jobsplit <- function(ival=1, data, topn=5000, rvalue=0.5, cut=4){
 		#code to examine rhodiff values
 		for(i in 1:(ncol(data.mat)-1)){
 			# Edit by pwwang, exclude the third variable
-			if (i==ival) next
+			if (i %in% nvec) next
 			index <- which((abs(rho.diff[,i]))>rvalue, arr.ind=TRUE)
 			# Edit by pwwang, exclude the third variable
-			index <- index[index!=ival]
+			index <- setdiff(index, nvec)
 			if (length(index)!=0){
 				res.mat <- matrix(NA,ncol=5,nrow=length(index))
 				res.mat[,1] <- i	
@@ -138,7 +140,7 @@ jobsplit <- function(ival=1, data, topn=5000, rvalue=0.5, cut=4){
 	}
 }
 wrapper<-function(data, topn, nvec, rvalue, cut){
-	outlist <- mclapply(nvec, jobsplit, data=data, topn=topn, rvalue=rvalue, cut=cut)
+	outlist <- mclapply(nvec, jobsplit, data=data, topn=topn, nvec = nvec, rvalue=rvalue, cut=cut)
 	outlist <- do.call(rbind,outlist)
 	nreturn <- c(topn,nrow(outlist))
 	toplt <- head(outlist[order(abs(outlist[,5]),decreasing=TRUE),],min(nreturn))
