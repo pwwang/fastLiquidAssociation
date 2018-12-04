@@ -85,69 +85,97 @@ GLA <- function(object, cut=4, dim=3, geneMap=NULL){
 	}
 
 #####internal to fastMLA
-jobsplit <- function(ival=1, data, topn=5000, nvec=NULL, rvalue=0.5, cut=4){
-	top <- matrix(NA,ncol=5,nrow=topn)
+jobsplit <- function(ival=1, data, nvec=NULL, rvalue=0.5, cut=4){
+	#top <- matrix(NA,ncol=5,nrow=topn)
+	top = data.frame(
+		X       = character(),
+		Y       = character(),
+		Z       = character(),
+		rhoDiff = double(),
+		LA      = double()
+	)
 	#data.cor <- data[,-ival]
-	third <- data[,ival]
+	third    <- data[,ival,drop = F]
+	data.cor <- data[,-nvec$z,drop = F]
 	# pwwang
-	if (is.null(nvec)) nvec = c(ival)
-	data.cor <- data[,-nvec]
+	allnames = colnames(data)
+	names3   = allnames[ival]
+	if (is.null(nvec$x)) {
+		names1 = allnames
+		names2 = allnames
+	} else {
+		names1 = allnames[nvec$x]
+		names2 = setdiff(allnames, c(names1, allnames[nvec$z]))
+	}
 	if(length(unique(third))<3 | nlevels(Hmisc::cut2(data[,ival], g=3))< min(3, cut-1)){
 		return(top)
 	} else {
 		#data sorted based on column input, separates into high vs low expression 
 		#based on gene in third position
-		subset <- !is.na(third)
-		exp.vec <- exp.fun(third)
-		invec <- exp.vec[subset]
+		subset   <- !is.na(third)
+		exp.vec  <- exp.fun(third)
+		invec    <- exp.vec[subset]
 		data.mat <- data.cor[subset,]
-		ones <- data.mat[which(invec==max(invec)),]
-		zeroes <- data.mat[which(invec==min(invec)),]
+		ones     <- data.mat[which(invec==max(invec)),]
+		zeroes   <- data.mat[which(invec==min(invec)),]
 		#calculates correlation with call to WGCNA cor()
 		#use="p" for pearson pairwise handling of missing data
-		rho.one <- WGCNA::cor(ones, use="p")
+		rho.one  <- WGCNA::cor(ones, use="p")
 		rho.zero <- WGCNA::cor(zeroes, use="p")
 		rho.diff <- rho.one-rho.zero
 		rho.diff[upper.tri(rho.diff,diag=TRUE)] <- NA
 		#determines which pairs are greater than the specified correlation
 		#code to examine rhodiff values
+		dnames = colnames(data.mat)
+		GLAcalc <- function(subord,data.cor,third){
+			trip <- cbind(data.cor[,subord],third)
+			outGLA <- GLA(trip, dim=3, cut=cut)
+			return(outGLA)
+		}
 		for(i in 1:(ncol(data.mat)-1)){
-			index <- which((abs(rho.diff[,i]))>rvalue, arr.ind=TRUE)
-			if (length(index)!=0){
+			# only keep res.mat[,1] as the X
+			if (!dnames[i] %in% names1) next
+			index  = which((abs(rho.diff[,i]))>rvalue, arr.ind=TRUE)
+			inames = intersect(dnames[index], names2)
+			index  = match(inames, dnames)
+			if (length(inames)!=0){
 				res.mat <- matrix(NA,ncol=5,nrow=length(index))
-				res.mat[,1] <- i	
-				res.mat[,2] <- index
-				res.mat[,3] <- ival
+				colnames(res.mat) = colnames(top)
+				res.mat[,1] <- dnames[i]	
+				res.mat[,2] <- inames
+				res.mat[,3] <- names3
 				res.mat[,4] <- rho.diff[,i][index]
-				GLAcalc <- function(subord,data.cor,third){
-					trip <- cbind(data.cor[,subord],third)
-					outGLA <- GLA(trip, dim=3, cut=cut)
-					return(outGLA)
-				}
-				if(length(index)==1){res.mat[,5]<-GLAcalc(res.mat[,1:2],data.cor=data.cor,third=third)
+				if(length(inames)==1){
+					res.mat[,5] = GLAcalc(res.mat[,1:2],data.cor=data.cor,third=third)
 				} else {
 					GLAtest <- apply(res.mat[,1:2],1,GLAcalc,data.cor=data.cor,third=third)
-					res.mat[,5] <- GLAtest
+					res.mat[,5] = GLAtest
 				}
-				combine <- rbind(top,res.mat)
-				top <- head(combine[order(abs(combine[,5]),decreasing=T),],topn)
+				top <- rbind(top,res.mat)
 			} else {top <- top}
 		} 
 		return(top)
 	}
 }
 wrapper<-function(data, topn, nvec, rvalue, cut){
-	outlist <- mclapply(nvec, jobsplit, data=data, topn=topn, nvec = nvec, rvalue=rvalue, cut=cut)
-	outlist <- do.call(rbind,outlist)
-	nreturn <- c(topn,nrow(outlist))
-	toplt <- head(outlist[order(abs(outlist[,5]),decreasing=TRUE),],min(nreturn))
-	return(na.omit(toplt))
+	outlist = mclapply(nvec$z, jobsplit, data=data, nvec = nvec, rvalue=rvalue, cut=cut)
+	outlist = do.call(rbind,outlist)
+	outlist = outlist[order(abs(as.numeric(outlist[,5])),decreasing=TRUE),,drop = F]
+	if (!is.null(topn))
+		outlist = head(outlist, topn)
+	return(outlist)
 }
 namesfun<-function(toplt,data,nvec){
 	#ival <- toplt[3]
-	short <- colnames(data[,-nvec])
 	long  <- colnames(data)
-	outname <- cbind(short[toplt[1]],short[toplt[2]],long[toplt[3]])
+	if (is.null(nvec$x)) {
+		shortx <- long[-nvec$z]
+		shorty <- NULL
+	} else {
+		shortx <- long[nvec$x]
+		shorty <- setdiff(long, shortx, long[topIt[3]])
+	}
+	outname <- cbind(shortx[toplt[1]],ifelse(is.null(shorty), shortx, shorty)[toplt[2]],long[toplt[3]])
 	return(outname)
 }
 ###end of internal to fastMLA
