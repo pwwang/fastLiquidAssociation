@@ -4,39 +4,30 @@
 #####for fastMLA
 fastMLA <- setClass("fastMLA",slots=c(fastMLA="data.frame"))
 
-setGeneric("fastMLA", function(data,topn=2000,nvec=1, rvalue=0.5,cut=4,threads=detectCores()) standardGeneric("fastMLA"))
+setGeneric("fastMLA", function(data,topn=NULL,nvec=1, rvalue=0.5,cut=4,threads=detectCores()) standardGeneric("fastMLA"))
 
 setMethod("fastMLA",signature(data="matrix"),
-	function(data,topn=2000,nvec=1, rvalue=0.5,cut=4,threads=detectCores()){
-	if(ncol(data)<3)
-		stop("There must be at least 3 columns in the data set")
-	if(ncol(data)<length(nvec))
-		stop("Specified number of genes to test exceeds number of genes in data matrix") 
-	if(!is.numeric(data))
-		stop("Data matrix must be numeric")
-	if(topn<1|!is.numeric(topn)|(topn%%1!=0))
-		stop("topn must be a positive whole number")
-	if(any(nvec<1)|any(!is.numeric(nvec))|any(nvec%%1!=0))
-		stop("nvec must contain positive whole number(s)")
-	if(rvalue<0|rvalue>2)
-		stop("rvalue must be between 0 and 2")
-	if(cut<0|!is.numeric(cut))
-		stop("cut must be a positive whole number")
-	enableWGCNAThreads(threads)
-	dat.q <- apply(data,2,quant.norm)
-	dat.s <- apply(dat.q,2,stand2)
-	numbers <- wrapper(dat.s,topn,nvec,rvalue,cut)
-	if(nrow(numbers)<1){
-	finalout<-NULL
-	return(finalout)
-	} else {
-	letters <- t(apply(numbers,1,namesfun,data=dat.s,nvec=nvec))
-	print(letters)
-	finalout <- data.frame(letters,round(numbers[,4:5],5),stringsAsFactors=FALSE)
-	colnames(finalout) <- c("X1 or X2","X2 or X1","X3","rhodiff","MLA value")
-	return(finalout)
-	}
-	doParallel::stopImplicitCluster()
+	function(data,topn=NULL,nvec=1, rvalue=0.5,cut=4,threads=detectCores()){
+		if(ncol(data)<3)
+			stop("There must be at least 3 columns in the data set")
+		if(!is.list(nvec)) nvec = list(z = nvec)
+		if(ncol(data)<length(nvec$z))
+			stop("Specified number of genes to test exceeds number of genes in data matrix") 
+		if(!is.numeric(data))
+			stop("Data matrix must be numeric")
+		if(!is.null(topn)&&(topn<1||!is.numeric(topn)||(topn%%1!=0)))
+			stop("topn must be a positive whole number")
+		if(any(nvec$z<1)|any(!is.numeric(nvec$z))|any(nvec$z%%1!=0))
+			stop("nvec must contain positive whole number(s)")
+		if(rvalue<0|rvalue>2)
+			stop("rvalue must be between 0 and 2")
+		if(cut<0|!is.numeric(cut))
+			stop("cut must be a positive whole number")
+		enableWGCNAThreads(threads)
+		dat.q <- apply(data,2,quant.norm)
+		dat.s <- apply(dat.q,2,stand2)
+		return(wrapper(dat.s,topn,nvec,rvalue,cut))
+		doParallel::stopImplicitCluster()
 	}
 )
 
@@ -56,7 +47,7 @@ setMethod("mass.CNM",signature(data="matrix",GLA.mat="data.frame"),
 	if(nback<1|!is.numeric(nback)|any(nback%%1!=0))
 		stop("nback must be a positive integer")
 	if(any(nback<2))
-		stop("nvec must be >= 2")
+		stop("nback must be >= 2")
 	fullmod <- top.CNM(data, GLA.mat)
 	boots.f <- boots.index(fullmod)
 	rpts.full <- fullmod[boots.f,]
@@ -139,4 +130,3 @@ setMethod("fastboots.GLA",signature(data="matrix"),
 	stopImplicitCluster()
 	}
 )
-
