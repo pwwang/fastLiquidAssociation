@@ -4,10 +4,10 @@
 #####for fastMLA
 fastMLA <- setClass("fastMLA",slots=c(fastMLA="data.frame"))
 
-setGeneric("fastMLA", function(data,topn=NULL,nvec=1, rvalue=0.5,cut=4,threads=detectCores()) standardGeneric("fastMLA"))
+setGeneric("fastMLA", function(data,topn=NULL,nvec=1, rvalue=0.5,cut=4,zcat=F,threads=detectCores()) standardGeneric("fastMLA"))
 
 setMethod("fastMLA",signature(data="matrix"),
-	function(data,topn=NULL,nvec=1, rvalue=0.5,cut=4,threads=detectCores()){
+	function(data,topn=NULL,nvec=1, rvalue=0.5,cut=4,zcat=F,threads=detectCores()){
 		if(ncol(data)<3)
 			stop("There must be at least 3 columns in the data set")
 		if(!is.list(nvec)) nvec = list(z = nvec)
@@ -23,11 +23,18 @@ setMethod("fastMLA",signature(data="matrix"),
 			stop("rvalue must be between 0 and 2")
 		if(cut<0|!is.numeric(cut))
 			stop("cut must be a positive whole number")
-		enableWGCNAThreads(threads)
-		dat.q <- apply(data,2,quant.norm)
+		if (threads > 1) enableWGCNAThreads(threads)
+		dat.n = data
+		if (zcat) dat.n = data[, -nvec$z, drop=F]
+		dat.q <- apply(dat.n,2,quant.norm)
 		dat.s <- apply(dat.q,2,stand2)
-		return(wrapper(dat.s,topn,nvec,rvalue,cut))
-		doParallel::stopImplicitCluster()
+		if (zcat) {
+			data[, -nvec$z] = dat.s
+		} else {
+			data = dat.s
+		}
+		return(wrapper(data,topn,nvec,rvalue,cut,zcat))
+		if (threads > 1) doParallel::stopImplicitCluster()
 	}
 )
 
