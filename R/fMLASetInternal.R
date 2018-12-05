@@ -52,7 +52,7 @@ quant.norm <- function(vector){
 }
 
 # updates LiquidAssociation's GLA function to call Hmisc's cut2 vs base cut to avoid breaks are not unique error 
-GLA <- function(object, cut=4, dim=3, geneMap=NULL){
+GLA <- function(object, cut=4, dim=3, geneMap=NULL, zcat=F){
 	if (!is.numeric(object))
 		stop("Input matrix must be numeric")
 	if(ncol(object)!=3)
@@ -60,32 +60,48 @@ GLA <- function(object, cut=4, dim=3, geneMap=NULL){
 	if (length(colnames(object))!=3 & length(geneMap)!=3)
 		stop("Please specify the names of three variables")
 	if (length(geneMap)==3)
-		colnames(object)<-names(geneMap)
+		colnames(object) <- names(geneMap)
 	data <- object[!is.na(object[,1]) & !is.na(object[,2]) & !is.na(object[,3]),]
-	data[,dim] <- qqnorm2(data[,dim])
-	data <- apply(data, 2, stand)
-	x <- seq(0,1, length=cut)
-	br <- quantile(data[,dim], prob=x)
-	index <- as.numeric(Hmisc::cut2(data[, dim], g=(cut-1)))
-	tab <- table(index)
-	tab <- tab[tab > 2]
-	vect <- as.numeric(names(tab))
-	m2 <- rep(0, length(vect))
-	cor.e <- rep(0, length(vect))
-	gla.x2 <- rep(0, length(vect))
-	for ( i in 1:length(vect)){
-		p <- which(index==vect[i])
-		m2[i] <- mean(data[p,dim])
-		cor.e[i] <- cor(data[p, -dim])[1,2]
-		gla.x2[i] <- cor.e[i]*m2[i]
+	if (!zcat) {
+		data[,dim] <- qqnorm2(data[,dim])
+		data       <- apply(data, 2, stand)
+		x          <- seq(0,1, length=cut)
+		br         <- quantile(data[,dim], prob=x)
+		index      <- as.numeric(Hmisc::cut2(data[, dim], g=(cut-1)))
+		tab        <- table(index)
+		tab        <- tab[tab > 2]
+		vect       <- as.numeric(names(tab))
+		m2         <- rep(0, length(vect))
+		cor.e      <- rep(0, length(vect))
+		gla.x2     <- rep(0, length(vect))
+		for (i in 1:length(vect)){
+			p         <- which(index==vect[i])
+			m2[i]     <- mean(data[p,dim])
+			cor.e[i]  <- cor(data[p, -dim])[1,2]
+			gla.x2[i] <- cor.e[i]*m2[i]
+		}
+		ans <- mean(gla.x2)
+	} else {
+		zlvls = sort(as.numeric(levels(factor(data[, dim]))))
+		if (length(zlvls) < 2)
+			stop('Require at least 2 levels for Z if it is categorical.')
+		cor.e  = rep(0, length(zlvls))
+		gla.x2 = rep(0, length(zlvls) - 1)
+		for (i in 1:length(zlvls)) {
+			p        = which(data[, dim] == zlvls[i])
+			cor.e[i] = cor(data[p, -dim])[1,2]
+			if (i>1) {
+				gla.x2[i-1] = (cor.e[i] - cor.e[i-1])/(zlvls[i] - zlvls[i-1])
+			}
+		}
+		ans = mean(gla.x2)
 	}
-	ans <- mean(gla.x2)
 	names(ans) <- paste("GLA(", colnames(object)[1], ",", colnames(object)[2], "|", colnames(object)[3],")", sep="")
 	return(ans)
-	}
+}
 
 #####internal to fastMLA
-jobsplit <- function(ival=1, data, nvec=NULL, rvalue=0.5, cut=4){
+jobsplit <- function(ival=1, data, nvec=NULL, rvalue=0.5, cut=4, zcat=F){
 	#top <- matrix(NA,ncol=5,nrow=topn)
 	top = data.frame(
 		X       = character(),
@@ -127,9 +143,9 @@ jobsplit <- function(ival=1, data, nvec=NULL, rvalue=0.5, cut=4){
 		#determines which pairs are greater than the specified correlation
 		#code to examine rhodiff values
 		dnames = colnames(data.mat)
-		GLAcalc <- function(subord,data.cor,third){
+		GLAcalc <- function(subord,data.cor,third,zcat){
 			trip <- cbind(data.cor[,subord],third)
-			outGLA <- GLA(trip, dim=3, cut=cut)
+			outGLA <- GLA(trip, dim=3, cut=cut, zcat=zcat)
 			return(outGLA)
 		}
 		for(i in 1:(ncol(data.mat)-1)){
@@ -146,9 +162,9 @@ jobsplit <- function(ival=1, data, nvec=NULL, rvalue=0.5, cut=4){
 				res.mat[,3] <- names3
 				res.mat[,4] <- rho.diff[,i][index]
 				if(length(inames)==1){
-					res.mat[,5] = GLAcalc(res.mat[,1:2],data.cor=data.cor,third=third)
+					res.mat[,5] = GLAcalc(res.mat[,1:2],data.cor=data.cor,third=third,zcat=zcat)
 				} else {
-					GLAtest <- apply(res.mat[,1:2],1,GLAcalc,data.cor=data.cor,third=third)
+					GLAtest <- apply(res.mat[,1:2],1,GLAcalc,data.cor=data.cor,third=third,zcat=zcat)
 					res.mat[,5] = GLAtest
 				}
 				top <- rbind(top,res.mat)
@@ -157,10 +173,10 @@ jobsplit <- function(ival=1, data, nvec=NULL, rvalue=0.5, cut=4){
 		return(top)
 	}
 }
-wrapper<-function(data, topn, nvec, rvalue, cut){
-	outlist = mclapply(nvec$z, jobsplit, data=data, nvec = nvec, rvalue=rvalue, cut=cut)
+wrapper<-function(data, topn, nvec, rvalue, cut, zcat){
+	outlist = mclapply(nvec$z, jobsplit, data=data, nvec = nvec, rvalue=rvalue, cut=cut, zcat=zcat)
 	outlist = do.call(rbind,outlist)
-	outlist = outlist[order(abs(as.numeric(outlist[,5])),decreasing=TRUE),,drop = F]
+	outlist = outlist[order(abs(as.numeric(as.vector(outlist[,5]))),decreasing=TRUE),,drop = F]
 	if (!is.null(topn))
 		outlist = head(outlist, topn)
 	return(outlist)
