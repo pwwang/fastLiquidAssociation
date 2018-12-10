@@ -139,7 +139,8 @@ jobsplit <- function(ival=1, data, nvec=NULL, rvalue=0.5, cut=4, zcat=F){
 		rho.one  <- WGCNA::cor(ones, use="p")
 		rho.zero <- WGCNA::cor(zeroes, use="p")
 		rho.diff <- rho.one-rho.zero
-		rho.diff[upper.tri(rho.diff,diag=TRUE)] <- NA
+		#rho.diff[upper.tri(rho.diff,diag=TRUE)] <- NA
+		diag(rho.diff) = -1
 		#determines which pairs are greater than the specified correlation
 		#code to examine rhodiff values
 		dnames = colnames(data.mat)
@@ -148,7 +149,7 @@ jobsplit <- function(ival=1, data, nvec=NULL, rvalue=0.5, cut=4, zcat=F){
 			outGLA <- GLA(trip, dim=3, cut=cut, zcat=zcat)
 			return(outGLA)
 		}
-		for(i in 1:(ncol(data.mat)-1)){
+		for(i in 1:ncol(data.mat)){
 			# only keep res.mat[,1] as the X
 			if (!dnames[i] %in% names1) next
 			index  = which((abs(rho.diff[,i]))>rvalue, arr.ind=TRUE)
